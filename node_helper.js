@@ -18,25 +18,60 @@ function sprintf(fmt) {
   return message;
 }
 
-function _format_log_line(level, args) {
-  function lpad(n, c) {
-    return "" + ((n < 10) ? c : "") + n;
+class Logger {
+  constructor() {
+    this.level = this.Level.INFO;
   }
-  var now = new Date();
 
-  return sprintf("{}/{} {}:{}:{} - MMM-TouringPlans - {} - {}", lpad(now.getMonth() + 1, " "),
-    lpad(now.getDate(), "0"), lpad(now.getHours() % 12 || 12, " "),
-    lpad(now.getMinutes(), "0"), lpad(now.getSeconds(), 0),
-    level, sprintf.apply(this, args));
+  _format_log_line(args) {
+    function z(n) {
+      return ((n < 10) ? "0" : "") + n;
+    }
+    var now = new Date();
+
+    return sprintf("{}/{} {}:{}:{} - MMM-TouringPlans - {}", z(now.getMonth() + 1),
+      z(now.getDate()), z(now.getHours()), z(now.getMinutes()), z(now.getSeconds()),
+      sprintf.apply(this, args));
+  }
+
+  debug(fmt) {
+    if (this.level <= this.Level.DEBUG) {
+      console.log(this._format_log_line(arguments));
+    }
+  }
+
+  log(fmt) {
+    if (this.level <= this.Level.DEBUG) {
+      console.log(this._format_log_line(arguments));
+    }
+  }
+
+  info(fmt) {
+    if (this.level <= this.Level.INFO) {
+      console.info(this._format_log_line(arguments));
+    }
+  }
+
+  warn(fmt) {
+    if (this.level <= this.Level.WARN) {
+      console.warn(this._format_log_line(arguments));
+    }
+  }
+
+  error(fmt) {
+    if (this.level <= this.Level.ERROR) {
+      console.error(this._format_log_line(arguments));
+    }
+  }
 }
 
-function log(fmt) {
-  console.log(_format_log_line("DEBUG", arguments));
-}
-
-function logerror(fmt) {
-  console.error(_format_log_line("ERROR", arguments));
-}
+Logger.prototype.Level = Object.freeze({
+  DEBUG: 0,
+  INFO: 1,
+  WARN: 2,
+  ERROR: 3,
+  NONE: 4,
+});
 
 function today() {
   var now = new Date();
@@ -73,8 +108,13 @@ module.exports = NodeHelper.create({
   start: function() {
     var self = this;
 
-    log("Starting node helper");
+    self.logger = new Logger();
     self.debug = false;
+    if (self.debug) {
+      self.logger.level = Logger.Level.DEBUG;
+    }
+
+    self.logger.info("Starting node helper");
     self.login_pending = false;
     self.fetch_pending = false;
     self.cache = { "forecast": [], "expires": Date.now() };
@@ -95,12 +135,12 @@ module.exports = NodeHelper.create({
     var today = new Date().toISOString().slice(0, 10).replace("-", "/");
 
     while (self.cache.forecast.length > 0 && self.cache.forecast[0].date !== today) {
-      log("Removing {} from cache", self.cache.forecast[0].date);
+      self.logger.log("Removing {} from cache", self.cache.forecast[0].date);
       self.cache.forecast = self.cache.forecast.slice(1);
     }
 
     if (now < self.cache.expires && config.maximumEntries <= self.cache.forecast.length) {
-      log("Sending cached forecast ({} ms remaining)", (self.cache.expires - now) | 0);
+      self.logger.log("Sending cached forecast ({} ms remaining)", (self.cache.expires - now) | 0);
       self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
     } else {
       self.fetchData(config);
@@ -126,7 +166,7 @@ module.exports = NodeHelper.create({
       return;
     }
 
-    log("Fetching crowd calendar");
+    self.logger.log("Fetching crowd calendar");
     request({
       url: url,
       method: "GET",
@@ -165,7 +205,7 @@ module.exports = NodeHelper.create({
       return;
     }
 
-    log("Fetching login page");
+    self.logger.log("Fetching login page");
     request({
       url: url,
       method: "GET",
@@ -206,7 +246,7 @@ module.exports = NodeHelper.create({
           }
         });
 
-        log("Logging in");
+        self.logger.log("Logging in");
         request({
           url: "https://touringplans.com/user_sessions",
           method: "POST",
@@ -254,8 +294,8 @@ module.exports = NodeHelper.create({
 
     self.cache.forecast = forecast;
     self.cache.expires = Date.now() + config.updateInterval * 0.9;
-    log("{} entries in forecast cache, expires at {}", forecast.length,
-      new Date(self.cache.expires).toString());
+    self.logger.log("{} entries in forecast cache, expires in {}ms", forecast.length,
+      self.cache.expires - Date.now());
     self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
   },
 });
