@@ -5,6 +5,7 @@ const request = require("request");
 const htmlparser = require("htmlparser2");
 const domutils = require("domutils");
 const fs = require("fs");
+const FileCookieStore = require("./filestore").FileCookieStore;
 
 function sprintf(fmt) {
   var parts = fmt.split("{}");
@@ -107,6 +108,9 @@ function innerText(element) {
 module.exports = NodeHelper.create({
   start: function() {
     var self = this;
+    var cookieFile = __dirname + "/cookies.json";
+
+    fs.closeSync(fs.openSync(cookieFile, "w"));
 
     self.logger = new Logger();
     self.debug = false;
@@ -118,7 +122,7 @@ module.exports = NodeHelper.create({
     self.login_pending = false;
     self.fetch_pending = false;
     self.cache = { "forecast": [], "expires": Date.now() };
-    self.jar = request.jar();
+    self.jar = request.jar(new FileCookieStore(cookieFile));
   },
 
   socketNotificationReceived: function(notification, payload) {
