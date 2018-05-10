@@ -105,10 +105,14 @@ function innerText(element) {
   return innerInnerText(element).trim().replace(/\s+/g, " ");
 }
 
+function moduleFile(filename) {
+  return __dirname + "/" + filename;
+}
+
 module.exports = NodeHelper.create({
   start: function() {
     var self = this;
-    var cookieFile = __dirname + "/cookies.json";
+    var cookieFile = moduleFile("cookies.json");
 
     fs.closeSync(fs.openSync(cookieFile, "w"));
 
@@ -155,8 +159,8 @@ module.exports = NodeHelper.create({
     var self = this;
     var url = "https://touringplans.com/walt-disney-world/crowd-calendar";
 
-    if (self.debug && fs.existsSync("modules/MMM-TouringPlans/crowd-calendar.html")) {
-      self.processData(config, fs.readFileSync("modules/MMM-TouringPlans/crowd-calendar.html"));
+    if (self.debug && fs.existsSync(moduleFile("crowd-calendar.html"))) {
+      self.processData(config, fs.readFileSync(moduleFile("crowd-calendar.html")));
       return;
     }
 
@@ -186,7 +190,7 @@ module.exports = NodeHelper.create({
 
       if (response.statusCode === 200) {
         if (self.debug) {
-          fs.writeFileSync("modules/MMM-TouringPlans/crowd-calendar.html", body);
+          fs.writeFileSync(moduleFile("crowd-calendar.html"), body);
         }
         self.processData(config, body);
         self.fetch_pending = false;
@@ -204,8 +208,8 @@ module.exports = NodeHelper.create({
 
     self.login_pending = true;
 
-    if (self.debug && fs.existsSync("modules/MMM-TouringPlans/crowd-calendar.html")) {
-      self.processLoginPage(config, fs.readFileSync("modules/MMM-TouringPlans/crowd-calendar.html"));
+    if (self.debug && fs.existsSync(moduleFile("crowd-calendar.html"))) {
+      self.processLoginPage(config, fs.readFileSync(moduleFile("crowd-calendar.html")));
       return;
     }
 
@@ -226,7 +230,7 @@ module.exports = NodeHelper.create({
 
       if (response.statusCode === 200) {
         if (self.debug) {
-          fs.writeFileSync("modules/MMM-TouringPlans/login.html", body);
+          fs.writeFileSync(moduleFile("login.html"), body);
         }
         self.processLoginPage(config, body);
       }
