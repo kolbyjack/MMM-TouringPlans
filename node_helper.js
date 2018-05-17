@@ -74,17 +74,6 @@ Logger.prototype.Level = Object.freeze({
   NONE: 4,
 });
 
-function today() {
-  var now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function addDays(date, days) {
-  var result = new Date(date);
-  result.setDate(result.getDate() + days);
-  return result;
-}
-
 function innerText(element) {
   function innerInnerText(el) {
     var result = "";
