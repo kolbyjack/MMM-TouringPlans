@@ -34,19 +34,19 @@ Module.register("MMM-TouringPlans", {
     var self = this;
     var table = document.createElement("table");
     var PARKS = ["MK", "EP", "HS", "AK"];
-    // http://www.perbang.dk/rgbgradient/ 37f637..f42f2f HSV inverse
+    // http://www.perbang.dk/rgbgradient/ 3792f6..f42f91 HSV inverse
     var LEVEL_COLORS = [
       "",
-      "#37f637",
-      "#60f536",
-      "#8af535",
-      "#b4f534",
-      "#dff533",
-      "#f4df32",
-      "#f4b331",
-      "#f48730",
-      "#f45b2f",
-      "#f42f2f",
+      "#3792f6",
+      "#36e7f5",
+      "#35f5ae",
+      "#34f557",
+      "#66f533",
+      "#bcf432",
+      "#f4d631",
+      "#f47e30",
+      "#f42f39",
+      "#f42f91",
     ];
 
     table.className = "normal small";
