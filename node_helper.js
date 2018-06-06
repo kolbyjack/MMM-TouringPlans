@@ -281,7 +281,7 @@ module.exports = NodeHelper.create({
       
       var date = new Date(innerText(cells[0]).split(" ").slice(0, 3).join(" "));
       forecast.push({
-        date: date.toISOString().slice(0, 10).replace("-", "/"),
+        date: date.toISOString().slice(0, 10).replace(/-/g, "/"),
         MK: +(innerText(cells[2]).split(" ")[0]),
         EP: +(innerText(cells[3]).split(" ")[0]),
         HS: +(innerText(cells[4]).split(" ")[0]),
