@@ -108,7 +108,7 @@ module.exports = NodeHelper.create({
     self.logger = new Logger();
     self.debug = false;
     if (self.debug) {
-      self.logger.level = Logger.Level.DEBUG;
+      self.logger.level = self.logger.Level.DEBUG;
     }
 
     self.logger.info("Starting node helper");
