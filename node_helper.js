@@ -129,7 +129,7 @@ module.exports = NodeHelper.create({
   fetchWaitTimes: function(config) {
     var self = this;
     var now = Date.now();
-    var today = new Date().toISOString().slice(0, 10).replace("-", "/");
+    var today = new Date().toISOString().slice(0, 10).replace(/-/g, "/");
 
     while (self.cache.forecast.length > 0 && self.cache.forecast[0].date !== today) {
       self.logger.log("Removing {} from cache", self.cache.forecast[0].date);
