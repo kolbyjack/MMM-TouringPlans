@@ -19,15 +19,16 @@ function sprintf(fmt) {
   return message;
 }
 
+function z(n) {
+  return ((n < 10) ? "0" : "") + n;
+}
+
 class Logger {
   constructor() {
     this.level = this.Level.INFO;
   }
 
   _format_log_line(args) {
-    function z(n) {
-      return ((n < 10) ? "0" : "") + n;
-    }
     var now = new Date();
 
     return sprintf("{}/{} {}:{}:{} - MMM-TouringPlans - {}", z(now.getMonth() + 1),
@@ -114,7 +115,14 @@ module.exports = NodeHelper.create({
     self.logger.info("Starting node helper");
     self.login_pending = false;
     self.fetch_pending = false;
-    self.cache = { "forecast": [], "expires": Date.now() };
+    if (fs.existsSync(moduleFile("crowd-calendar.json"))) {
+      self.cache = JSON.parse(fs.readFileSync(moduleFile("crowd-calendar.json")));
+      var valid_sec = ((self.cache.expires - Date.now()) * 0.001) | 0;
+      self.logger.log("{} entries in forecast cache, expires in {}:{}:{}", self.cache.forecast.length,
+        (valid_sec / 60 / 60) | 0, z(((valid_sec / 60) % 60) | 0), z(valid_sec % 60));
+    } else {
+      self.cache = { "forecast": [], "expires": Date.now() };
+    }
     self.jar = request.jar(new FileCookieStore(cookieFile));
   },
 
@@ -290,9 +298,11 @@ module.exports = NodeHelper.create({
     });
 
     self.cache.forecast = forecast;
-    self.cache.expires = Date.now() + config.updateInterval * 0.9;
-    self.logger.log("{} entries in forecast cache, expires in {}ms", forecast.length,
-      self.cache.expires - Date.now());
+    self.cache.expires = (new Date()).setUTCHours(30, 0, 0, 0);
+    fs.writeFileSync(moduleFile("crowd-calendar.json"), JSON.stringify(self.cache));
+    var valid_sec = ((self.cache.expires - Date.now()) * 0.001) | 0;
+    self.logger.log("{} entries in forecast cache, expires in {}:{}:{}", self.cache.forecast.length,
+      (valid_sec / 60 / 60) | 0, z(((valid_sec / 60) % 60) | 0), z(valid_sec % 60));
     self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
   },
 });
