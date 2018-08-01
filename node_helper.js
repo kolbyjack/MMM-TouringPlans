@@ -23,6 +23,14 @@ function z(n) {
   return ((n < 10) ? "0" : "") + n;
 }
 
+function msToHMS(ms) {
+  var hr = (ms / 3600000) | 0;
+  var min = ((ms / 60000) % 60) | 0;
+  var sec = ((ms * 0.001) % 60) | 0;
+
+  return sprintf("{}:{}:{}", hr, z(min), z(sec));
+}
+
 class Logger {
   constructor() {
     this.level = this.Level.INFO;
@@ -117,9 +125,8 @@ module.exports = NodeHelper.create({
     self.fetch_pending = false;
     if (fs.existsSync(moduleFile("crowd-calendar.json"))) {
       self.cache = JSON.parse(fs.readFileSync(moduleFile("crowd-calendar.json")));
-      var valid_sec = ((self.cache.expires - Date.now()) * 0.001) | 0;
-      self.logger.log("{} entries in forecast cache, expires in {}:{}:{}", self.cache.forecast.length,
-        (valid_sec / 60 / 60) | 0, z(((valid_sec / 60) % 60) | 0), z(valid_sec % 60));
+      self.logger.log("{} entries in forecast cache, expires in {}",
+        self.cache.forecast.length, msToHMS(self.cache.expires - Date.now()));
     } else {
       self.cache = { "forecast": [], "expires": Date.now() };
     }
@@ -145,7 +152,7 @@ module.exports = NodeHelper.create({
     }
 
     if (now < self.cache.expires && config.maximumEntries <= self.cache.forecast.length) {
-      self.logger.log("Sending cached forecast ({} ms remaining)", (self.cache.expires - now) | 0);
+      self.logger.log("Sending cached forecast, expires in {}", msToHMS(self.cache.expires - now));
       self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
     } else {
       self.fetchData(config);
@@ -300,9 +307,8 @@ module.exports = NodeHelper.create({
     self.cache.forecast = forecast;
     self.cache.expires = (new Date()).setUTCHours(30, 0, 0, 0);
     fs.writeFileSync(moduleFile("crowd-calendar.json"), JSON.stringify(self.cache));
-    var valid_sec = ((self.cache.expires - Date.now()) * 0.001) | 0;
-    self.logger.log("{} entries in forecast cache, expires in {}:{}:{}", self.cache.forecast.length,
-      (valid_sec / 60 / 60) | 0, z(((valid_sec / 60) % 60) | 0), z(valid_sec % 60));
+    self.logger.log("{} entries in forecast cache, expires in {}",
+      self.cache.forecast.length, msToHMS(self.cache.expires - Date.now()));
     self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
   },
 });
