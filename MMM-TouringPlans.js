@@ -15,6 +15,10 @@ Module.register("MMM-TouringPlans", {
     setInterval(function() { self.getData(); }, self.config.updateInterval);
   },
 
+  notificationReceived: function(notification, payload, sender) {
+    // Do nothing
+  },
+
   socketNotificationReceived: function(notification, payload) {
     var self = this;
 
