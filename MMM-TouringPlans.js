@@ -36,6 +36,7 @@ Module.register("MMM-TouringPlans", {
 
   getDom: function() {
     var self = this;
+    var wrapper = document.createElement("div");
     var table = document.createElement("table");
     var PARKS = ["MK", "EP", "HS", "AK"];
     // http://www.perbang.dk/rgbgradient/ 3792f6..f42f91 HSV inverse
@@ -79,6 +80,21 @@ Module.register("MMM-TouringPlans", {
       table.appendChild(row);
     }
 
-    return table;
+    wrapper.appendChild(table);
+
+    table = document.createElement("table");
+    table.style = "width: 100%; height: 16px; border-collapse: collapse;";
+    var row = document.createElement("tr");
+    for (var i in LEVEL_COLORS) {
+      var cell = document.createElement("td");
+
+      cell.style["background-color"] = LEVEL_COLORS[i];
+      row.appendChild(cell);
+    }
+
+    table.appendChild(row);
+    wrapper.appendChild(table);
+
+    return wrapper;
   }
 });
