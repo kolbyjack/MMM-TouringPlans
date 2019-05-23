@@ -86,10 +86,11 @@ Module.register("MMM-TouringPlans", {
     table.style = "width: 100%; height: 14px; border-collapse: collapse;";
     var row = document.createElement("tr");
     for (var i in LEVEL_COLORS) {
-      var cell = document.createElement("td");
-
-      cell.style["background-color"] = LEVEL_COLORS[i];
-      row.appendChild(cell);
+      if (LEVEL_COLORS[i].length > 0) {
+        var cell = document.createElement("td");
+        cell.style["background-color"] = LEVEL_COLORS[i];
+        row.appendChild(cell);
+      }
     }
 
     table.appendChild(row);
