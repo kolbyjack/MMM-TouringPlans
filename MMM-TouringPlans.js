@@ -83,7 +83,7 @@ Module.register("MMM-TouringPlans", {
     wrapper.appendChild(table);
 
     table = document.createElement("table");
-    table.style = "width: 100%; height: 16px; border-collapse: collapse;";
+    table.style = "width: 100%; height: 14px; border-collapse: collapse;";
     var row = document.createElement("tr");
     for (var i in LEVEL_COLORS) {
       var cell = document.createElement("td");
