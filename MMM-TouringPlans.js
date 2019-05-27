@@ -96,6 +96,8 @@ Module.register("MMM-TouringPlans", {
     table.appendChild(row);
     wrapper.appendChild(table);
 
+    wrapper.style.width = "16ex";
+
     return wrapper;
   }
 });
