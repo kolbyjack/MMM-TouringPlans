@@ -55,6 +55,7 @@ Module.register("MMM-TouringPlans", {
     ];
 
     table.className = "normal small";
+    var usedLevels = {};
     for (var i = 0; i < self.forecast.length; i++) {
       var day = self.forecast[i];
       var date = new Date(day.date);
@@ -73,6 +74,7 @@ Module.register("MMM-TouringPlans", {
 
         cell.innerText = PARKS[j];
         cell.style.color = LEVEL_COLORS[day[PARKS[j]]];
+        usedLevels[day[PARKS[j]]] = true;
 
         row.appendChild(cell);
       }
@@ -80,18 +82,23 @@ Module.register("MMM-TouringPlans", {
       table.appendChild(row);
     }
 
-    wrapper.appendChild(table);
-
-    table = document.createElement("table");
-    table.style = "width: 100%; height: 14px; border-collapse: collapse;";
     var row = document.createElement("tr");
-    for (var i in LEVEL_COLORS) {
-      if (LEVEL_COLORS[i].length > 0) {
-        var cell = document.createElement("td");
-        cell.style["background-color"] = LEVEL_COLORS[i];
-        row.appendChild(cell);
+    row.style["line-height"] = "12px";
+    row.appendChild(document.createElement("td"));
+
+    cell = document.createElement("td");
+    cell.colSpan = "4";
+    for (var i = 1; i <= 10; ++i) {
+      var div = document.createElement("div");
+      div.style = "width: 10%; display: inline-block; margin: 0px; padding: 0px; border: 0px;"
+      div.style["background-color"] = LEVEL_COLORS[i];
+      if (!usedLevels[i]) {
+        div.style.filter = "brightness(0.2)";
       }
+      div.innerHTML = "&nbsp;";
+      cell.appendChild(div);
     }
+    row.appendChild(cell);
 
     table.appendChild(row);
     wrapper.appendChild(table);
