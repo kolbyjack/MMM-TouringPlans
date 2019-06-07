@@ -74,6 +74,7 @@ Module.register("MMM-TouringPlans", {
 
         cell.innerText = PARKS[j];
         cell.style.color = LEVEL_COLORS[day[PARKS[j]]];
+        cell.style["text-align"] = "center";
         usedLevels[day[PARKS[j]]] = true;
 
         row.appendChild(cell);
