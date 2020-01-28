@@ -5,6 +5,7 @@ Module.register("MMM-TouringPlans", {
   defaults: {
     updateInterval: 60 * 60 * 1000,
     maximumEntries: 7,
+    passType: "platinum",
   },
 
   start: function() {
@@ -61,6 +62,13 @@ Module.register("MMM-TouringPlans", {
       var date = new Date(day.date);
       var row = document.createElement("tr");
       var cell = document.createElement("td");
+
+      if (("validPasses" in day) &&
+          Object.keys(day.validPasses).length > 0 &&
+          !(self.config.passType in day.validPasses))
+      {
+        row.style.filter = "brightness(0.2)";
+      }
 
       if (i <= 7) {
         cell.innerText = date.toLocaleDateString(config.language, { "weekday": "short", "timeZone": "UTC" });

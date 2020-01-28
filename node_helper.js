@@ -121,27 +121,33 @@ module.exports = NodeHelper.create({
     }
 
     self.logger.info("Starting node helper");
-    self.login_pending = false;
-    self.fetch_pending = false;
+    self.loginPending = false;
+    self.forecastFetchPending = false;
+    self.blockoutFetchPending = false;
+    self.cache = { "forecast": [], "expires": Date.now() };
+    self.blockoutData = {};
+    self.jar = request.jar(new FileCookieStore(cookieFile));
+
     if (fs.existsSync(moduleFile("crowd-calendar.json"))) {
       self.cache = JSON.parse(fs.readFileSync(moduleFile("crowd-calendar.json")));
       self.logger.log("{} entries in forecast cache, expires in {}",
         self.cache.forecast.length, msToHMS(self.cache.expires - Date.now()));
-    } else {
-      self.cache = { "forecast": [], "expires": Date.now() };
     }
-    self.jar = request.jar(new FileCookieStore(cookieFile));
+
+    if (fs.existsSync(moduleFile("blockout-data.json"))) {
+      self.blockoutData = JSON.parse(fs.readFileSync(moduleFile("blockout-data.json")));
+    }
   },
 
   socketNotificationReceived: function(notification, payload) {
     var self = this;
 
     if (notification === "TOURINGPLANS_FETCH_FORECAST") {
-      self.fetchWaitTimes(payload);
+      self.fetchForecast(payload);
     }
   },
 
-  fetchWaitTimes: function(config) {
+  fetchForecast: function(config) {
     var self = this;
     var now = Date.now();
     var today = new Date().toISOString().slice(0, 10).replace(/-/g, "/");
@@ -155,24 +161,25 @@ module.exports = NodeHelper.create({
       self.logger.log("Sending cached forecast, expires in {}", msToHMS(self.cache.expires - now));
       self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
     } else {
-      self.fetchData(config);
+      self.fetchCrowdData(config);
+      self.fetchBlockoutData();
     }
   },
 
-  fetchData: function(config) {
+  fetchCrowdData: function(config) {
     var self = this;
     var url = "https://touringplans.com/walt-disney-world/crowd-calendar";
 
     if (self.debug && fs.existsSync(moduleFile("crowd-calendar.html"))) {
-      self.processData(config, fs.readFileSync(moduleFile("crowd-calendar.html")));
+      self.processCrowdCalendar(config, fs.readFileSync(moduleFile("crowd-calendar.html")));
       return;
     }
 
-    if (self.fetch_pending) {
+    if (self.forecastFetchPending) {
       return;
     }
 
-    self.fetch_pending = true;
+    self.forecastFetchPending = true;
     if (self.jar.getCookies(url).length === 0) {
       self.fetchLoginPage(config);
       return;
@@ -188,7 +195,7 @@ module.exports = NodeHelper.create({
     function(error, response, body) {
       if (error) {
         self.sendSocketNotification("FETCH_ERROR", { error: error });
-        self.fetch_pending = false;
+        self.forecastFetchPending = false;
         return logerror(error);
       }
 
@@ -196,8 +203,8 @@ module.exports = NodeHelper.create({
         if (self.debug) {
           fs.writeFileSync(moduleFile("crowd-calendar.html"), body);
         }
-        self.processData(config, body);
-        self.fetch_pending = false;
+        self.processCrowdCalendar(config, body);
+        self.forecastFetchPending = false;
       }
     });
   },
@@ -206,11 +213,11 @@ module.exports = NodeHelper.create({
     var self = this;
     var url = "https://touringplans.com/login";
 
-    if (self.login_pending) {
+    if (self.loginPending) {
       return;
     }
 
-    self.login_pending = true;
+    self.loginPending = true;
 
     if (self.debug && fs.existsSync(moduleFile("crowd-calendar.html"))) {
       self.processLoginPage(config, fs.readFileSync(moduleFile("crowd-calendar.html")));
@@ -227,8 +234,8 @@ module.exports = NodeHelper.create({
     function(error, response, body) {
       if (error) {
         self.sendSocketNotification("TOURINGPLANS_LOGIN_ERROR", { error: error });
-        self.login_pending = false;
-        self.fetch_pending = false;
+        self.loginPending = false;
+        self.forecastFetchPending = false;
         return logerror(error);
       }
 
@@ -269,20 +276,20 @@ module.exports = NodeHelper.create({
         function(error, response, body) {
           if (error) {
             self.sendSocketNotification("TOURINGPLANS_LOGIN_ERROR", { error: error });
-            self.login_pending = false;
-            self.fetch_pending = false;
+            self.loginPending = false;
+            self.forecastFetchPending = false;
             return logerror(error);
           }
 
-          self.login_pending = false;
-          self.fetch_pending = false;
-          self.fetchData(config);
+          self.loginPending = false;
+          self.forecastFetchPending = false;
+          self.fetchCrowdData(config);
         });
       }
     });
   },
 
-  processData: function(config, data) {
+  processCrowdCalendar: function(config, data) {
     var self = this;
     var dom = htmlparser.parseDOM(data);
     var forecast = [];
@@ -295,12 +302,14 @@ module.exports = NodeHelper.create({
       }
       
       var date = new Date(innerText(cells[0]).split(" ").slice(0, 3).join(" "));
+      date = date.toISOString().slice(0, 10).replace(/-/g, "/");
       forecast.push({
-        date: date.toISOString().slice(0, 10).replace(/-/g, "/"),
+        date: date,
         MK: +(innerText(cells[2]).split(" ")[0]),
         EP: +(innerText(cells[3]).split(" ")[0]),
         HS: +(innerText(cells[4]).split(" ")[0]),
         AK: +(innerText(cells[5]).split(" ")[0]),
+        validPasses: self.blockoutData[date],
       });
     });
 
@@ -310,5 +319,60 @@ module.exports = NodeHelper.create({
     self.logger.log("{} entries in forecast cache, expires in {}",
       self.cache.forecast.length, msToHMS(self.cache.expires - Date.now()));
     self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
+  },
+
+  fetchBlockoutData: function(config) {
+    var self = this;
+    var url = "https://disneyworld.disney.go.com/passes/blockout-dates/api/get-calendars/?months=3";
+
+    if (self.blockoutFetchPending === true) {
+      return;
+    }
+
+    self.blockoutFetchPending = true;
+    request({
+      url: url,
+      method: "GET",
+      headers: { "cache-control": "no-cache" },
+    },
+    function(error, response, body) {
+      if (error) {
+        self.sendSocketNotification("FETCH_ERROR", { error: error });
+        self.blockoutFetchPending = false;
+        return logerror(error);
+      }
+
+      if (response.statusCode === 200) {
+        self.processBlockoutData(config, body);
+        self.blockoutFetchPending = false;
+      }
+    });
+  },
+
+  processBlockoutData: function(config, data) {
+    var self = this;
+    var json = JSON.parse(data);
+    var blockoutData = {};
+
+    for (var pass in json.entries) {
+      var passName = pass.substr(4).toLowerCase();
+      var calendars = json.entries[pass].calendars;
+
+      if (!("PARK_HOPPER" in calendars)) {
+        continue;
+      }
+
+      calendars.PARK_HOPPER.goodToGoDates.map(date => {
+        var dateKey = date.replace(/-/g, "/");
+
+        if (!(dateKey in blockoutData)) {
+          blockoutData[dateKey] = {};
+        }
+        blockoutData[dateKey][passName] = "valid";
+      });
+    }
+
+    self.blockoutData = blockoutData;
+    fs.writeFileSync(moduleFile("blockout-data.json"), JSON.stringify(self.blockoutData));
   },
 });
