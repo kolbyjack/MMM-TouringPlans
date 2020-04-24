@@ -7,18 +7,6 @@ const domutils = require("domutils");
 const fs = require("fs");
 const FileCookieStore = require("./filestore").FileCookieStore;
 
-function sprintf(fmt) {
-  var parts = fmt.split("{}");
-  var message = parts[0];
-  var i;
-
-  for (i = 1; i < parts.length; ++i) {
-    message += arguments[i] + parts[i];
-  }
-
-  return message;
-}
-
 function z(n) {
   return ((n < 10) ? "0" : "") + n;
 }
@@ -28,60 +16,8 @@ function msToHMS(ms) {
   var min = ((ms / 60000) % 60) | 0;
   var sec = ((ms * 0.001) % 60) | 0;
 
-  return sprintf("{}:{}:{}", hr, z(min), z(sec));
+  return `${hr}:${z(min)}:${z(sec)}`;
 }
-
-class Logger {
-  constructor() {
-    this.level = this.Level.INFO;
-  }
-
-  _format_log_line(args) {
-    var now = new Date();
-
-    return sprintf("{}/{} {}:{}:{} - MMM-TouringPlans - {}", z(now.getMonth() + 1),
-      z(now.getDate()), z(now.getHours()), z(now.getMinutes()), z(now.getSeconds()),
-      sprintf.apply(this, args));
-  }
-
-  debug(fmt) {
-    if (this.level <= this.Level.DEBUG) {
-      console.log(this._format_log_line(arguments));
-    }
-  }
-
-  log(fmt) {
-    if (this.level <= this.Level.DEBUG) {
-      console.log(this._format_log_line(arguments));
-    }
-  }
-
-  info(fmt) {
-    if (this.level <= this.Level.INFO) {
-      console.info(this._format_log_line(arguments));
-    }
-  }
-
-  warn(fmt) {
-    if (this.level <= this.Level.WARN) {
-      console.warn(this._format_log_line(arguments));
-    }
-  }
-
-  error(fmt) {
-    if (this.level <= this.Level.ERROR) {
-      console.error(this._format_log_line(arguments));
-    }
-  }
-}
-
-Logger.prototype.Level = Object.freeze({
-  DEBUG: 0,
-  INFO: 1,
-  WARN: 2,
-  ERROR: 3,
-  NONE: 4,
-});
 
 function innerText(element) {
   function innerInnerText(el) {
@@ -104,7 +40,7 @@ function innerText(element) {
 }
 
 function moduleFile(filename) {
-  return __dirname + "/" + filename;
+  return `${__dirname}/${filename}`;
 }
 
 module.exports = NodeHelper.create({
@@ -114,13 +50,8 @@ module.exports = NodeHelper.create({
 
     fs.closeSync(fs.openSync(cookieFile, "w"));
 
-    self.logger = new Logger();
     self.debug = false;
-    if (self.debug) {
-      self.logger.level = self.logger.Level.DEBUG;
-    }
-
-    self.logger.info("Starting node helper");
+    self.log("Starting node helper");
     self.loginPending = false;
     self.forecastFetchPending = false;
     self.blockoutFetchPending = false;
@@ -130,8 +61,7 @@ module.exports = NodeHelper.create({
 
     if (fs.existsSync(moduleFile("crowd-calendar.json"))) {
       self.cache = JSON.parse(fs.readFileSync(moduleFile("crowd-calendar.json")));
-      self.logger.log("{} entries in forecast cache, expires in {}",
-        self.cache.forecast.length, msToHMS(self.cache.expires - Date.now()));
+      self.log(`${self.cache.forecast.length} entries in forecast cache, expires in ${msToHMS(self.cache.expires - Date.now())}`);
     }
 
     if (fs.existsSync(moduleFile("blockout-data.json"))) {
@@ -153,12 +83,12 @@ module.exports = NodeHelper.create({
     var today = new Date().toISOString().slice(0, 10).replace(/-/g, "/");
 
     while (self.cache.forecast.length > 0 && self.cache.forecast[0].date !== today) {
-      self.logger.log("Removing {} from cache", self.cache.forecast[0].date);
+      self.log(`Removing ${self.cache.forecast[0].date} from cache`);
       self.cache.forecast = self.cache.forecast.slice(1);
     }
 
     if (now < self.cache.expires && config.maximumEntries <= self.cache.forecast.length) {
-      self.logger.log("Sending cached forecast, expires in {}", msToHMS(self.cache.expires - now));
+      self.log(`Sending cached forecast, expires in ${msToHMS(self.cache.expires - now)}`);
       self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
     } else {
       self.fetchCrowdData(config);
@@ -185,7 +115,7 @@ module.exports = NodeHelper.create({
       return;
     }
 
-    self.logger.log("Fetching crowd calendar");
+    self.log("Fetching crowd calendar");
     request({
       url: url,
       method: "GET",
@@ -224,7 +154,7 @@ module.exports = NodeHelper.create({
       return;
     }
 
-    self.logger.log("Fetching login page");
+    self.log("Fetching login page");
     request({
       url: url,
       method: "GET",
@@ -265,7 +195,7 @@ module.exports = NodeHelper.create({
           }
         });
 
-        self.logger.log("Logging in");
+        self.log("Logging in");
         request({
           url: "https://touringplans.com/user_sessions",
           method: "POST",
@@ -316,8 +246,7 @@ module.exports = NodeHelper.create({
     self.cache.forecast = forecast;
     self.cache.expires = (new Date()).setUTCHours(30, 0, 0, 0);
     fs.writeFileSync(moduleFile("crowd-calendar.json"), JSON.stringify(self.cache));
-    self.logger.log("{} entries in forecast cache, expires in {}",
-      self.cache.forecast.length, msToHMS(self.cache.expires - Date.now()));
+    self.log(`${self.cache.forecast.length} entries in forecast cache, expires in ${msToHMS(self.cache.expires - Date.now())}`);
     self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
   },
 
@@ -374,5 +303,13 @@ module.exports = NodeHelper.create({
 
     self.blockoutData = blockoutData;
     fs.writeFileSync(moduleFile("blockout-data.json"), JSON.stringify(self.blockoutData));
+  },
+
+  log: function(message) {
+    var self = this;
+
+    if (self.debug) {
+      console.log(message);
+    }
   },
 });
