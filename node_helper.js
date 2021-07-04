@@ -120,7 +120,7 @@ module.exports = NodeHelper.create({
       if (error) {
         self.sendSocketNotification("FETCH_ERROR", { error: error });
         self.fetch_pending = false;
-        return logerror(error);
+        return console.error(error);
       }
 
       if (response.statusCode === 200) {
@@ -160,7 +160,7 @@ module.exports = NodeHelper.create({
         self.sendSocketNotification("TOURINGPLANS_LOGIN_ERROR", { error: error });
         self.login_pending = false;
         self.fetch_pending = false;
-        return logerror(error);
+        return console.error(error);
       }
 
       if (response.statusCode === 200) {
@@ -202,7 +202,7 @@ module.exports = NodeHelper.create({
             self.sendSocketNotification("TOURINGPLANS_LOGIN_ERROR", { error: error });
             self.login_pending = false;
             self.fetch_pending = false;
-            return logerror(error);
+            return console.error(error);
           }
 
           self.login_pending = false;
