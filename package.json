@@ -1,0 +1,23 @@
+{
+  "name": "mmm-touringplans",
+  "version": "1.0.0",
+  "description": "MagicMirror2 module for displaying crowd calendar forecasts from TouringPlans.com",
+  "main": "MMM-TouringPlans.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kolbyjack/MMM-TouringPlans.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kolbyjack/MMM-TouringPlans/issues"
+  },
+  "homepage": "https://github.com/kolbyjack/MMM-TouringPlans#readme",
+  "dependencies": {
+    "file-cookie-store": "^0.2.1",
+    "request": "^2.88.2"
+  }
+}

@@ -5,7 +5,7 @@ const request = require("request");
 const htmlparser = require("htmlparser2");
 const domutils = require("domutils");
 const fs = require("fs");
-const FileCookieStore = require("./filestore").FileCookieStore;
+const FileCookieStore = require("file-cookie-store");
 
 function z(n) {
   return ((n < 10) ? "0" : "") + n;
