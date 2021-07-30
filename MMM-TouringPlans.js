@@ -5,6 +5,7 @@ Module.register("MMM-TouringPlans", {
   defaults: {
     updateInterval: 60 * 60 * 1000,
     maximumEntries: 7,
+    passType: "platinum",
   },
 
   start: function() {
@@ -36,7 +37,6 @@ Module.register("MMM-TouringPlans", {
 
   getDom: function() {
     var self = this;
-    var wrapper = document.createElement("div");
     var table = document.createElement("table");
     var PARKS = ["MK", "EP", "HS", "AK"];
     // http://www.perbang.dk/rgbgradient/ 3792f6..f42f91 HSV inverse
@@ -55,12 +55,21 @@ Module.register("MMM-TouringPlans", {
     ];
 
     table.className = "normal small";
+    table.style.width = "275px";
+
     var usedLevels = {};
     for (var i = 0; i < self.forecast.length; i++) {
       var day = self.forecast[i];
       var date = new Date(day.date);
       var row = document.createElement("tr");
       var cell = document.createElement("td");
+
+      if (("validPasses" in day) &&
+          Object.keys(day.validPasses).length > 0 &&
+          !(self.config.passType in day.validPasses))
+      {
+        row.style.filter = "brightness(0.2)";
+      }
 
       if (i <= 7) {
         cell.innerText = date.toLocaleDateString(config.language, { "weekday": "short", "timeZone": "UTC" });
@@ -74,6 +83,7 @@ Module.register("MMM-TouringPlans", {
 
         cell.innerText = PARKS[j];
         cell.style.color = LEVEL_COLORS[day[PARKS[j]]];
+        cell.style["text-align"] = "center";
         usedLevels[day[PARKS[j]]] = true;
 
         row.appendChild(cell);
@@ -101,10 +111,7 @@ Module.register("MMM-TouringPlans", {
     row.appendChild(cell);
 
     table.appendChild(row);
-    wrapper.appendChild(table);
 
-    wrapper.style.width = "16ex";
-
-    return wrapper;
+    return table;
   }
 });
