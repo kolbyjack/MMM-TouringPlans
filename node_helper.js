@@ -55,7 +55,7 @@ module.exports = NodeHelper.create({
     self.loginPending = false;
     self.forecastFetchPending = false;
     self.blockoutFetchPending = false;
-    self.cache = { "forecast": [], "expires": Date.now() };
+    self.cache = { "resort": null, "forecast": [], "expires": Date.now() };
     self.blockoutData = {};
     self.jar = request.jar(new FileCookieStore(cookieFile));
 
@@ -87,18 +87,20 @@ module.exports = NodeHelper.create({
       self.cache.forecast = self.cache.forecast.slice(1);
     }
 
-    if (now < self.cache.expires && config.maximumEntries <= self.cache.forecast.length) {
+    if (now < self.cache.expires && config.maximumEntries <= self.cache.forecast.length && config.resort === self.cache.resort) {
       console.log(`Sending cached forecast, expires in ${msToHMS(self.cache.expires - now)}`);
       self.sendSocketNotification("TOURINGPLANS_FORECAST", self.cache.forecast);
     } else {
       self.fetchCrowdData(config);
-      self.fetchBlockoutData();
+      if (config.resort === "walt-disney-world") {
+        self.fetchBlockoutData();
+      }
     }
   },
 
   fetchCrowdData: function(config) {
     var self = this;
-    var url = "https://touringplans.com/walt-disney-world/crowd-calendar";
+    const url = `https://touringplans.com/${config.resort}/crowd-calendar`;
 
     if (self.debug && fs.existsSync(moduleFile("crowd-calendar.html"))) {
       self.processCrowdCalendar(config, fs.readFileSync(moduleFile("crowd-calendar.html")));
@@ -223,26 +225,41 @@ module.exports = NodeHelper.create({
     var self = this;
     var dom = htmlparser.parseDOM(data);
     var forecast = [];
+    const columns = {
+      "walt-disney-world": 8,
+      "universal-orlando": 6,
+    };
 
     domutils.filter(e => e.type === "tag" && e.name === "tr", dom).map(function(row) {
       var cells = row.children.filter(e => e.type === "tag" && e.name === "td");
       
-      if (cells.length !== 8 || innerText(cells[0]).toLowerCase() === "date" || forecast.length >= 60) {
+      if (cells.length !== columns[config.resort]
+          || innerText(cells[0]).toLowerCase() === "date"
+          || forecast.length >= 60) {
         return;
       }
       
       var date = new Date(innerText(cells[0]).split(" ").slice(0, 3).join(" "));
       date = date.toISOString().slice(0, 10).replace(/-/g, "/");
-      forecast.push({
-        date: date,
-        MK: +(innerText(cells[2]).split(" ")[0]),
-        EP: +(innerText(cells[3]).split(" ")[0]),
-        HS: +(innerText(cells[4]).split(" ")[0]),
-        AK: +(innerText(cells[5]).split(" ")[0]),
-        validPasses: self.blockoutData[date],
-      });
+      const o = { date: date };
+      if (config.resort === "walt-disney-world") {
+        if (date in self.blockoutData) {
+          o.validPasses = self.blockoutData[date];
+        }
+
+        o.MK = +(innerText(cells[2]).split(" ")[0]);
+        o.EP = +(innerText(cells[3]).split(" ")[0]);
+        o.HS = +(innerText(cells[4]).split(" ")[0]);
+        o.AK = +(innerText(cells[5]).split(" ")[0]);
+      } else if (config.resort === "universal-orlando") {
+        o.UO = +(innerText(cells[2]).split(" ")[0]);
+        o.IOA = +(innerText(cells[3]).split(" ")[0]);
+      }
+
+      forecast.push(o);
     });
 
+    self.cache.resort = config.resort;
     self.cache.forecast = forecast;
     self.cache.expires = (new Date()).setUTCHours(30, 0, 0, 0);
     fs.writeFileSync(moduleFile("crowd-calendar.json"), JSON.stringify(self.cache));

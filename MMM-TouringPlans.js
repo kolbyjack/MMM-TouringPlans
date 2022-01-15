@@ -3,6 +3,7 @@
 Module.register("MMM-TouringPlans", {
   // Default module config
   defaults: {
+    resort: "walt-disney-world",
     updateInterval: 60 * 60 * 1000,
     maximumEntries: 7,
     passType: "platinum",
@@ -38,7 +39,7 @@ Module.register("MMM-TouringPlans", {
   getDom: function() {
     var self = this;
     var table = document.createElement("table");
-    var PARKS = ["MK", "EP", "HS", "AK"];
+    var PARKS = ["MK", "EP", "HS", "AK", "UO", "IOA"];
     // http://www.perbang.dk/rgbgradient/ 3792f6..f42f91 HSV inverse
     var LEVEL_COLORS = [
       "",
@@ -79,6 +80,10 @@ Module.register("MMM-TouringPlans", {
       row.appendChild(cell);
 
       for (var j = 0; j < PARKS.length; ++j) {
+        if (!(PARKS[j] in day)) {
+          continue;
+        }
+
         cell = document.createElement("td");
 
         cell.innerText = PARKS[j];
