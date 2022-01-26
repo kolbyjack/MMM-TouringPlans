@@ -56,7 +56,7 @@ Module.register("MMM-TouringPlans", {
     ];
 
     table.className = "normal small";
-    table.style.width = "275px";
+    table.style.width = "auto";
 
     var usedLevels = {};
     for (var i = 0; i < self.forecast.length; i++) {
@@ -77,6 +77,7 @@ Module.register("MMM-TouringPlans", {
       } else {
         cell.innerText = (date.getMonth() + 1) + "/" + date.getDate();
       }
+      cell.style.width = "55px";
       row.appendChild(cell);
 
       for (var j = 0; j < PARKS.length; ++j) {
@@ -89,6 +90,7 @@ Module.register("MMM-TouringPlans", {
         cell.innerText = PARKS[j];
         cell.style.color = LEVEL_COLORS[day[PARKS[j]]];
         cell.style["text-align"] = "center";
+        cell.style.width = "55px";
         usedLevels[day[PARKS[j]]] = true;
 
         row.appendChild(cell);
@@ -102,7 +104,7 @@ Module.register("MMM-TouringPlans", {
     row.appendChild(document.createElement("td"));
 
     cell = document.createElement("td");
-    cell.colSpan = "4";
+    cell.colSpan = "999";
     for (var i = 1; i <= 10; ++i) {
       var div = document.createElement("div");
       div.style = "width: 10%; display: inline-block; margin: 0px; padding: 0px; border: 0px;"
