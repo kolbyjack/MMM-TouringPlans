@@ -312,7 +312,7 @@ module.exports = NodeHelper.create({
 
     for (let day of forecast) {
       for (let [park, level] of Object.entries(day)) {
-        if (!(park in ["MK", "EP", "HS", "AK"])) {
+        if (!Number.isInteger(level)) {
           continue;
         }
         const key = `${day.date}::${config.passType}::${park}`;
