@@ -65,13 +65,6 @@ Module.register("MMM-TouringPlans", {
       var row = document.createElement("tr");
       var cell = document.createElement("td");
 
-      if (("validPasses" in day) &&
-          Object.keys(day.validPasses).length > 0 &&
-          !(self.config.passType in day.validPasses))
-      {
-        row.style.filter = "brightness(0.2)";
-      }
-
       if (i <= 7) {
         cell.innerText = date.toLocaleDateString(config.language, { "weekday": "short", "timeZone": "UTC" });
       } else {
@@ -87,11 +80,16 @@ Module.register("MMM-TouringPlans", {
 
         cell = document.createElement("td");
 
+        let level = day[PARKS[j]];
+        if (level < 0) {
+          cell.style.filter = "brightness(0.2)";
+          level = -level;
+        }
         cell.innerText = PARKS[j];
-        cell.style.color = LEVEL_COLORS[day[PARKS[j]]];
+        cell.style.color = LEVEL_COLORS[level];
         cell.style["text-align"] = "center";
         cell.style.width = "55px";
-        usedLevels[day[PARKS[j]]] = true;
+        usedLevels[level] = true;
 
         row.appendChild(cell);
       }

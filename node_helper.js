@@ -224,10 +224,6 @@ module.exports = NodeHelper.create({
       const date = row.attribs["data-date"];
       const o = { date: date };
       if (config.resort === "walt-disney-world") {
-        if (date in self.blockoutData) {
-          o.validPasses = self.blockoutData[date];
-        }
-
         o.MK = +(innerText(cells[2]).split(" ")[0]);
         o.EP = +(innerText(cells[3]).split(" ")[0]);
         o.HS = +(innerText(cells[4]).split(" ")[0]);
@@ -240,6 +236,7 @@ module.exports = NodeHelper.create({
       forecast.push(o);
     });
 
+    applyBlockoutData(forecast, config);
     self.cache.resort = config.resort;
     self.cache.forecast = forecast;
     self.cache.expires = (new Date()).setUTCHours(30, 0, 0, 0);
@@ -275,23 +272,27 @@ module.exports = NodeHelper.create({
     var self = this;
     var json = JSON.parse(data);
     var blockoutData = {};
+    const parkMap = {
+      "80007838": "EP",
+      "80007998": "HS",
+      "80007944": "MK",
+      "80007823": "AK",
+    };
 
-    for (var pass in json.entries) {
-      var passName = pass.substr(4).toLowerCase();
-      var calendars = json.entries[pass].calendars;
+    for (var [passId, passData] of Object.entries(json.entries)) {
+      var passName = passId.substr(4).toLowerCase();
 
-      if (!("PARK_HOPPER" in calendars)) {
-        continue;
-      }
-
-      calendars.PARK_HOPPER.goodToGoDates.map(date => {
-        var dateKey = date.replace(/-/g, "/");
-
-        if (!(dateKey in blockoutData)) {
-          blockoutData[dateKey] = {};
+      for (var [parkId, calendarData] of Object.entries(passData.calendars)) {
+        if (!(parkId in parkMap)) {
+          continue;
         }
-        blockoutData[dateKey][passName] = "valid";
-      });
+
+        const parkName = parkMap[parkId];
+        calendarData.blockoutDates.map(date => {
+          const key = `${date.replace(/-/g, "/")}::${passName}::${parkName}`;
+          blockoutData[key] = true;
+        });
+      }
     }
 
     self.blockoutData = blockoutData;
@@ -303,6 +304,22 @@ module.exports = NodeHelper.create({
 
     if (self.debug) {
       console.log(message);
+    }
+  },
+
+  applyBlockoutData: function(forecast, config) {
+    const self = this;
+
+    for (let day of forecast) {
+      for (let [park, level] of Object.entries(day)) {
+        const key = `${day.date}::${config.passType}::${park}`;
+        console.log(`Checking blockoutData[${key}]`);
+        if (self.blockoutData[key]) {
+          day[park] = -Math.abs(level);
+        } else {
+          day[park] = Math.abs(level);
+        }
+      }
     }
   },
 
