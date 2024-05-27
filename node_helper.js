@@ -100,7 +100,8 @@ module.exports = NodeHelper.create({
 
   fetchCrowdData: function(config) {
     var self = this;
-    const url = `https://touringplans.com/${config.resort}/crowd-calendar`;
+    const now = new Date();
+    const url = `https://touringplans.com/${config.resort}/crowd-calendar?calendar[month]=${now.getMonth() + 1}&calendar[year]=${now.getFullYear()}&calendar[list]=true&button=`;
 
     if (self.debug && fs.existsSync(moduleFile("crowd-calendar.html"))) {
       self.processCrowdCalendar(config, fs.readFileSync(moduleFile("crowd-calendar.html")));
@@ -118,16 +119,11 @@ module.exports = NodeHelper.create({
     }
 
     console.log("Fetching crowd calendar");
-    request({
-      url: url,
-      method: "GET",
-      headers: { "cache-control": "no-cache" },
-      jar: self.jar,
-    },
-    function(error, response, body) {
+    self.request(url, (error, response, body) => {
+      self.forecastFetchPending = false;
+
       if (error) {
         self.sendSocketNotification("FETCH_ERROR", { error: error });
-        self.forecastFetchPending = false;
         return console.error(error);
       }
 
@@ -136,7 +132,6 @@ module.exports = NodeHelper.create({
           fs.writeFileSync(moduleFile("crowd-calendar.html"), body);
         }
         self.processCrowdCalendar(config, body);
-        self.forecastFetchPending = false;
       }
     });
   },
@@ -157,13 +152,7 @@ module.exports = NodeHelper.create({
     }
 
     console.log("Fetching login page");
-    request({
-      url: url,
-      method: "GET",
-      headers: { "cache-control": "no-cache" },
-      jar: self.jar,
-    },
-    function(error, response, body) {
+    self.request(url, (error, response, body) => {
       if (error) {
         self.sendSocketNotification("TOURINGPLANS_LOGIN_ERROR", { error: error });
         self.loginPending = false;
@@ -188,7 +177,8 @@ module.exports = NodeHelper.create({
       if (form.attribs.class === "new_user_session") {
         var formData = {
           "user_session[login]": config.username,
-          "user_session[password]": config.password
+          "user_session[password]": config.password,
+          "commit": "Log In"
         };
 
         domutils.filter(e => e.type === "tag" && e.name === "input", form).map(function(input) {
@@ -198,23 +188,15 @@ module.exports = NodeHelper.create({
         });
 
         console.log("Logging in");
-        request({
-          url: "https://touringplans.com/user_sessions",
-          method: "POST",
-          headers: { "cache-control": "no-cache" },
-          form: formData,
-          jar: self.jar,
-        },
-        function(error, response, body) {
+        self.request("https://touringplans.com/user_sessions", formData, (error, response, body) => {
+          self.loginPending = false;
+          self.forecastFetchPending = false;
+
           if (error) {
             self.sendSocketNotification("TOURINGPLANS_LOGIN_ERROR", { error: error });
-            self.loginPending = false;
-            self.forecastFetchPending = false;
             return console.error(error);
           }
 
-          self.loginPending = false;
-          self.forecastFetchPending = false;
           self.fetchCrowdData(config);
         });
       }
@@ -232,15 +214,14 @@ module.exports = NodeHelper.create({
 
     domutils.filter(e => e.type === "tag" && e.name === "tr", dom).map(function(row) {
       var cells = row.children.filter(e => e.type === "tag" && e.name === "td");
-      
+
       if (cells.length !== columns[config.resort]
           || innerText(cells[0]).toLowerCase() === "date"
           || forecast.length >= 60) {
         return;
       }
-      
-      var date = new Date(innerText(cells[0]).split(" ").slice(0, 3).join(" "));
-      date = date.toISOString().slice(0, 10).replace(/-/g, "/");
+
+      const date = row.attribs["data-date"];
       const o = { date: date };
       if (config.resort === "walt-disney-world") {
         if (date in self.blockoutData) {
@@ -276,12 +257,7 @@ module.exports = NodeHelper.create({
     }
 
     self.blockoutFetchPending = true;
-    request({
-      url: url,
-      method: "GET",
-      headers: { "cache-control": "no-cache" },
-    },
-    function(error, response, body) {
+    self.request(url, (error, response, body) => {
       if (error) {
         self.sendSocketNotification("FETCH_ERROR", { error: error });
         self.blockoutFetchPending = false;
@@ -328,5 +304,30 @@ module.exports = NodeHelper.create({
     if (self.debug) {
       console.log(message);
     }
+  },
+
+  request: function(url, body, callback) {
+    const self = this;
+    const params = {
+      url: url,
+      method: "GET",
+      headers: {
+        "Cache-Control": "no-cache",
+        "User-Agent": "MMM-TouringPlans",
+      },
+      jar: self.jar,
+    };
+
+    if (callback === undefined) {
+      callback = body;
+      body = null;
+    }
+
+    if (body) {
+      params.method = "POST";
+      params.form = body;
+    }
+
+    request(params, callback);
   },
 });
