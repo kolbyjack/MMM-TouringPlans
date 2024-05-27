@@ -236,7 +236,7 @@ module.exports = NodeHelper.create({
       forecast.push(o);
     });
 
-    applyBlockoutData(forecast, config);
+    self.applyBlockoutData(forecast, config);
     self.cache.resort = config.resort;
     self.cache.forecast = forecast;
     self.cache.expires = (new Date()).setUTCHours(30, 0, 0, 0);
