@@ -70,7 +70,7 @@ Module.register("MMM-TouringPlans", {
       } else {
         cell.innerText = (date.getMonth() + 1) + "/" + date.getDate();
       }
-      cell.style.width = "55px";
+      cell.style.width = "50px";
       row.appendChild(cell);
 
       for (var j = 0; j < PARKS.length; ++j) {
@@ -88,7 +88,7 @@ Module.register("MMM-TouringPlans", {
         cell.innerText = PARKS[j];
         cell.style.color = LEVEL_COLORS[level];
         cell.style["text-align"] = "center";
-        cell.style.width = "55px";
+        cell.style.width = "40px";
         usedLevels[level] = true;
 
         row.appendChild(cell);
