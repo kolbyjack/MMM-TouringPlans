@@ -39,7 +39,7 @@ Module.register("MMM-TouringPlans", {
   getDom: function() {
     var self = this;
     var table = document.createElement("table");
-    var PARKS = ["MK", "EP", "HS", "AK", "UO", "IOA"];
+    var PARKS = ["MK", "EP", "HS", "AK", "UO", "IOA", "EU"];
     // http://www.perbang.dk/rgbgradient/ 3792f6..f42f91 HSV inverse
     var LEVEL_COLORS = [
       "",

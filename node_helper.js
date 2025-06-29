@@ -231,7 +231,7 @@ module.exports = NodeHelper.create({
     const forecast = [];
     const columns = {
       "walt-disney-world": 8,
-      "universal-orlando": 6,
+      "universal-orlando": 7,
     };
 
     domutils.filter(e => e.type === "tag" && e.name === "tr", dom).map(function(row) {
@@ -253,6 +253,7 @@ module.exports = NodeHelper.create({
       } else if (resort === "universal-orlando") {
         o.UO = +(innerText(cells[2]).split(" ")[0]);
         o.IOA = +(innerText(cells[3]).split(" ")[0]);
+        o.EU = +(innerText(cells[4]).split(" ")[0]);
       }
 
       forecast.push(o);
